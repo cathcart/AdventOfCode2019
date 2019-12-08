@@ -100,7 +100,9 @@ class Panel():
 		self.max = 0 #PanelLimits(U=0,D=0, L=0, R=0)
 
 		self.wire = 0
-
+		self.visited = {}
+		self.timings = {}
+		self.time = 0
 		self.crosses = []
 
 	def checkAndMark(self):
@@ -116,25 +118,25 @@ class Panel():
 			self.map = self.map.add()
 			self.max += 1
 
+	def addPosition(self):
+		self.visited[self.wire].append(self.position)
+		self.timings[self.wire].append(self.time)
+
 	def moveLeft(self):
 		self.position = Pos(x=self.position.x - 1, y=self.position.y)
-		self.checkAndUpdate()
-		self.checkAndMark()
+		self.addPosition()
 
 	def moveRight(self):
 		self.position = Pos(x=self.position.x + 1, y=self.position.y)
-		self.checkAndUpdate()
-		self.checkAndMark()
+		self.addPosition()
 		
 	def moveUp(self):
-		self.position = Pos(x=self.position.x, y=self.position.y - 1)
-		self.checkAndUpdate()
-		self.checkAndMark()
+		self.position = Pos(x=self.position.x, y=self.position.y + 1)
+		self.addPosition()
 
 	def moveDown(self):
-		self.position = Pos(x=self.position.x, y=self.position.y + 1)
-		self.checkAndUpdate()
-		self.checkAndMark()
+		self.position = Pos(x=self.position.x, y=self.position.y - 1)
+		self.addPosition()
 
 
 	def move(self, cmd):
@@ -143,7 +145,7 @@ class Panel():
 		magnitude = int(cmd[1:])
 
 		for i in range(magnitude):
-			print("\t", i)
+			self.time += 1
 			if (direction == "U"):
 				self.moveUp()
 			if (direction == "D"):
@@ -156,17 +158,38 @@ class Panel():
 	def distance(self, position):
 		return abs(position.x) + abs(position.y)
 
+	def getCrosses(self):
+		A = set(self.visited[1])
+		B = set(self.visited[2])
+
+		self.crosses = A.intersection(B)
+
 	def nearest(self):
+		self.getCrosses()
 		return min(self.distance(x) for x in self.crosses)
+
+	def howLong(self, position):
+		idx1 = self.visited[1].index(position)
+		time1 = self.timings[1][idx1]
+		idx2 = self.visited[2].index(position)
+		time2 = self.timings[2][idx2]
+
+		return time1 + time2
+
+	def shortest(self):
+		self.getCrosses()
+		return min(self.howLong(x) for x in self.crosses)
 
 	def oneWire(self, inputString):
 		self.wire += 1
+		self.time = 0
+		self.timings[self.wire] = []
+		self.visited[self.wire] = []
 		self.position = Pos(x=0, y=0)
 		items = inputString.split(",")
 
 		length = len(items)
 		for i,x in enumerate(items):
-			print(x, i, length)
 			self.move(x)
 
 	def print(self):
@@ -176,10 +199,10 @@ class Panel():
 
 class Examples(unittest.TestCase):
 	def run(self):
-		myPanel = Panel()
-		myPanel.oneWire("L1")
+		#myPanel = Panel()
+		#myPanel.oneWire("L1")
 
-		self.assertEqual(myPanel.map.get(), [[0,0,0],[1,0,0],[0,0,0]] )
+		#self.assertEqual(myPanel.map.get(), [[0,0,0],[1,0,0],[0,0,0]] )
 
 		myPanel = Panel()
 		myPanel.oneWire("R8,U5,L5,D3")
@@ -201,7 +224,26 @@ class Examples(unittest.TestCase):
 		myPanel.oneWire("U98,R91,D20,R16,D67,R40,U7,R15,U6,R7")
 		print(myPanel.crosses)
 		self.assertEqual(myPanel.nearest(), 135)
-		
+	
+
+		#part2	
+		myPanel = Panel()
+		myPanel.oneWire("R8,U5,L5,D3")
+		myPanel.oneWire("U7,R6,D4,L4")
+
+		self.assertEqual(myPanel.shortest(), 30)
+
+		myPanel = Panel()
+		myPanel.oneWire("R75,D30,R83,U83,L12,D49,R71,U7,L72")
+		myPanel.oneWire("U62,R66,U55,R34,D71,R55,D58,R83")
+		print(myPanel.crosses)
+		self.assertEqual(myPanel.shortest(), 610)
+
+		myPanel = Panel()
+		myPanel.oneWire("R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51")
+		myPanel.oneWire("U98,R91,D20,R16,D67,R40,U7,R15,U6,R7")
+		print(myPanel.crosses)
+		self.assertEqual(myPanel.shortest(), 410)
 
 def get_input(input_file):
 	return open(input_file).read().strip().split("\n")
@@ -211,7 +253,7 @@ def get_input(input_file):
 if __name__ == "__main__":
 	#TestMatrix().run()
 
-	#Examples().run()
+	Examples().run()
 
 	ansPanel = Panel(2000)
 	[wire1, wire2] = get_input("input.txt")
@@ -221,3 +263,6 @@ if __name__ == "__main__":
 
 	print("Part 1")
 	print(ansPanel.nearest())
+
+	print("Part 2")
+	print(ansPanel.shortest())
